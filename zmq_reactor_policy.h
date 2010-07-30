@@ -23,5 +23,7 @@
  * 
  */
 
+// Still in development -- I wanted to get the basic framework out there first :-)
+
 //zmq_reactor_policy_static
 //zmq_reactor_policy_forward

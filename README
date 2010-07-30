@@ -1,0 +1,12 @@
+
+Still a work in progress, but I wanted to get the concepts out 
+there so the community could consider it, and improve upon it.
+
+Some rationale:
+
+Doubly linked lists:
+- STL lists et al would be hard to manipulate from a handler
+- You can derive from a zmq_reactor_t, and manipulate your class 
+  from a policy or a handler
+
+Many thanks to [X+1] for allowing me to open source this work.
