@@ -1,12 +1,49 @@
+WELCOME
+=======
 
-Still a work in progress, but I wanted to get the concepts out 
+zmq_reactor is intended to be a "reactor" style interface which will support building complex
+communication patterns with ØMQ.
+
+
+BACKGROUND
+==========
+
+After working with ØMQ a bit, there was a recognition that the logical place to extend ØMQ to add 
+certain types of "common" functionality, such as heartbeats, client request timeouts, etc. appeared to 
+be in the "devices" which perform multiplexing and forwarding functionality between sockets.
+
+However, adding functionality required copying the device code, adding another socket
+here or there, or perhaps add a queue or thread or two to handle things. (Martin S. did not approve 
+of this :-) )
+
+Subsequently attempts were made to create e.g. a multi-argument device(...) or equivalent, but they didn't
+capture the efficiency, functionality and elegance inherent in ØMQ.
+
+After some meditation, there was a recognition that the two essential elements of the ØMQ model
+that needed to be captured were the efficiencies inherent in ypipes (the lockless pipes in ØMQ), and
+the centralized control and efficiency inherent in the single-threaded model of the device subsystem.
+
+After a bit more meditation, and some typing(*) - zmq_reactor was born.
+
+
+CAVEATS
+=======
+These modules are Still a work in progress, but I wanted to get the concepts out 
 there so the community could consider it, and improve upon it.
 
-Some rationale:
 
-Doubly linked lists:
+IMPLEMENTATION NOTES
+====================
+Rationale for using doubly-linked lists:
+
 - STL lists et al would be hard to manipulate from a handler
 - You can derive from a zmq_reactor_t, and manipulate your class 
   from a policy or a handler
 
+KUDOS
+=====
+
 Many thanks to [X+1] for allowing me to open source this work.
+
+
+(*) About 90 minutes or so all told :-)
