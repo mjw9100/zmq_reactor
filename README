@@ -5,6 +5,15 @@ zmq_reactor is intended to be a "reactor" style interface which will support bui
 communication patterns with ØMQ.
 
 
+IMPORTANT NOTE
+==============
+The interface is in a state of flux. The multi-faceted poll() commands 
+and policy structures will be removed in the next version, and replaced
+with flags in the actual reactor structure.
+
+Please use *only* the basic poll() form (zmq_reactor_poll()) to ensure 
+compatibility.
+
 BACKGROUND
 ==========
 
