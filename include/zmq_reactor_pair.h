@@ -28,11 +28,11 @@
  * 
  */
 
-#ifndef __ZMQ_REACTOR_PAIR_INCLUDED__
-#define	__ZMQ_REACTOR_PAIR_INCLUDED__
+#ifndef __ZMQ_REACTOR_PAIR_H_INCLUDED__
+#define	__ZMQ_REACTOR_PAIR_H_INCLUDED__
 #include "zmq_reactor.h"
 
 // creates unique inproc ZMQ_PAIR, sets socket of reactor, and returns "output" side of pair
 void* zmq_reactor_pair(void* context, zmq_reactor_t*);
 
-#endif//__ZMQ_REACTOR_PAIR_INCLUDED__
+#endif//__ZMQ_REACTOR_PAIR_H_INCLUDED__

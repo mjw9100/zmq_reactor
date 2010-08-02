@@ -48,6 +48,7 @@ int zmq_reactor_init(zmq_reactor_t* preactor, short events, zmq_reactor_handler_
 	assert(preactor != NULL);
 	preactor->next		= preactor;
 	preactor->prev		= preactor;
+	preactor->options	= 0;
 	preactor->events	= events;
 	preactor->socket	= 0;
 	preactor->handler	= handler;
@@ -225,6 +226,18 @@ static int callback_repollitems(zmq_pollitem_t* begin, zmq_pollitem_t* end, zmq_
 	}
 	return rc;
 }
+
+//
+// MOVED HERE TEMPORARILY TO COMPILE
+// zmq_reactor_policy_t - user supplied function to select reactor ordering
+//
+// policy can return one of the following:
+//	- same reactor	= poll_list remains the same
+//	- new reactor	= poll_list is rebuilt, and starts with new reactor
+//	- NULL			= zmq_reactor_poll() gracefully returns with 0 (= no error)
+//
+typedef zmq_reactor_t* zmq_reactor_policy_t(zmq_reactor_t*, void* hint);
+
 
 //
 // zmq_reactor_repoll_policy

@@ -28,7 +28,9 @@
  * 
  */
 
-// Still in development -- I wanted to get the basic framework out there first :-)
+#ifndef	__ZMQ_REACTOR_OPTIONS_H_INCLUDED__
+#define	__ZMQ_REACTOR_OPTIONS_H_INCLUDED__
 
-//zmq_reactor_policy_static
-//zmq_reactor_policy_forward
+// This module will contain helper functions to set up various reactor options
+
+#endif	__ZMQ_REACTOR_OPTIONS_H_INCLUDED__

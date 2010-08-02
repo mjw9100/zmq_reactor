@@ -28,7 +28,6 @@
  * 
  */
 
-
 #ifndef	__ZMQ_REACTOR_H_INCLUDED__
 #define	__ZMQ_REACTOR_H_INCLUDED__
 
@@ -54,11 +53,37 @@ typedef int zmq_reactor_handler_t(void* socket, short revents, struct zmq_reacto
 struct zmq_reactor_t {
 	zmq_reactor_t*			next;
 	zmq_reactor_t*			prev;
+	short					options;
 	short					events;
 	void*					socket;
 	zmq_reactor_handler_t*	handler;
 	void*					hint;
 };
+
+//
+// reactor callback options
+//
+// NB microcode-like reactor options -- helper functions TBD in zmq_reactor_options.h
+//
+// ZMQ_REACTOR_OPT_ALWAYS - always callback even if no event occurred
+//
+// ZMQ_REACTOR_OPT_EXIT - always callback even if no event occurred
+//
+// ZMQ_REACTOR_OPT_RESTART - after calling, restart poll cycle
+// branch offset used to select next starting point (offset from 0)
+//
+// ZMQ_REACTOR_OPT_RELATIVE - offset on restart is relative to this reactor
+// NB this may not be final
+//
+// ZMQ_REACTOR_OPT_OFFSET_MASK - offset [0..15] to next reactor
+// executes relative branch to next reactor if non-zero
+//
+
+#define	ZMQ_REACTOR_OPT_ALWAYS		0x0080
+#define	ZMQ_REACTOR_OPT_EXIT		0x0040
+#define	ZMQ_REACTOR_OPT_RESTART		0x0020
+#define	ZMQ_REACTOR_OPT_RELATIVE	0x0010
+#define	ZMQ_REACTOR_OPT_OFFSET_MASK	0x000f
 
 //
 // zmq_reactor_init - initialize reactor
@@ -105,31 +130,16 @@ void* zmq_reactor_socket(zmq_reactor_t*);
 short zmq_reactor_events(zmq_reactor_t*, short events);
 
 //
-// zmq_reactor_policy_t - user supplied function to select reactor ordering
+// zmq_reactor_enable - sets options for reactor
 //
-// policy can return one of the following:
-//	- same reactor	= poll_list remains the same
-//	- new reactor	= poll_list is rebuilt, and starts with new reactor
-//	- NULL			= zmq_reactor_poll() gracefully returns with 0 (= no error)
+// returns: previous options
 //
-typedef zmq_reactor_t* zmq_reactor_policy_t(zmq_reactor_t*, void* hint);
+short zmq_reactor_options(zmq_reactor_t*, short options);
+
 
 // 
 // zmq_reactor_poll - poll reactors using the default polling policy (zmq_reactor_policy_static)
 //
 int zmq_reactor_poll(zmq_reactor_t*, long timeout); 
-
-// 
-// zmq_reactor_repoll - polls again after each upcall to pick up downstream changes
-//
-int zmq_reactor_repoll(zmq_reactor_t*, long timeout);
-
-//
-// zmq_reactor_poll_policy - poll reactors using a specific zmq_reactor_policy (see above)
-//
-// NB a policy value of NULL returns after one polling cycle
-//
-int zmq_reactor_poll_policy(zmq_reactor_t*, long timeout, zmq_reactor_policy_t*, void* hint); 
-
 
 #endif//__ZMQ_REACTOR_H_INCLUDED__
