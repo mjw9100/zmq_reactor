@@ -28,56 +28,30 @@
  * 
  */
 
-#include "queue_device.hpp"
+#ifndef	__ZMQ_REACTOR_OPS_H_INCLUDED__
+#define	__ZMQ_REACTOR_OPS_H_INCLUDED__
 
-#include "zmq.h"
 #include "zmq_reactor.h"
-#include "zmq_reactor_ops.h"
 
-#include <cassert>
+//
+// zmq_reactor_ops_normal - supplied for completeness
+//
+// Pattern: standard in-order polling
+// 
+void zmq_reactor_ops_normal(zmq_reactor_t* start);
 
-static int queue_handler(void* socket, short events, zmq_reactor_t* reactor, void* hint)
-{
-	zmq_msg_t	msg_;
-	int rc = zmq_msg_init(&msg_);
-	assert(rc == 0);
-	
-	for (;;) {
-		// receive message
-		int rc = zmq_recv(socket, &msg_, 0);
-		assert(rc == 0);
-		
-		int64_t more;
-		size_t moresz = sizeof(more);
-		
-		rc = zmq_getsockopt(socket, ZMQ_RCVMORE, &more, &moresz);
-		assert(rc == 0);
-		
-		rc = zmq_send(hint, &msg_, more ? ZMQ_SNDMORE : 0);
-		assert(rc == 0);
-		
-		if (!more)
-			break;
-	}
-	
-	return 0;
-}
+//
+// zmq_reactor_ops_priority - priority polling
+//
+// Pattern: priority polling - initiates a new poll from the start after every reactor call
+// 
+void zmq_reactor_ops_priority(zmq_reactor_t* start);
 
-int queue_device(void* socket1, void* socket2)
-{
-	zmq_reactor_t reactor1, reactor2;
-	
-	assert(zmq_reactor_init_socket(&reactor1, socket1, ZMQ_POLLIN, queue_handler, socket2) == 0);
-	assert(zmq_reactor_init_socket(&reactor2, socket2, ZMQ_POLLIN, queue_handler, socket1) == 0);
-	
-	// assemble queue
-	zmq_reactor_insert(&reactor1, &reactor2);
+//
+// zmq_reactor_ops_trailing - poll trailing sockets
+//
+// Pattern: trailing poll - sockets following are polled again
+// 
+void zmq_reactor_ops_trailing(zmq_reactor_t* start);
 
-	// unnecessary, but demonstrative
-	zmq_reactor_ops_normal(&reactor1);
-	
-	// poll
-	int rc = zmq_reactor_poll(&reactor1, -1);
-	return rc;
-}
-
+#endif	__ZMQ_REACTOR_OPS_H_INCLUDED__

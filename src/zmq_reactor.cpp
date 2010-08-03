@@ -35,24 +35,30 @@
 #include <iostream>
 using namespace std;
 
+//#define	ZMQ_REACTOR_DEBUG
+
+#ifdef	ZMQ_REACTOR_DEBUG
+#define	IF_DEBUG(N)	N
+#else
+#define	IF_DEBUG(N)
+#endif//ZMQ_REACTOR_DEBUG
 
 // Arbitrary but reasonable?
 enum { MAX_POLL = 50 };
 
-
 //
 // zmq_reactor_init - initialize reactor
 //
-int zmq_reactor_init(zmq_reactor_t* preactor, short events, zmq_reactor_handler_t* handler, void* hint)
+int zmq_reactor_init(zmq_reactor_t* pr, short events, zmq_reactor_handler_t* handler, void* hint)
 {
-	assert(preactor != NULL);
-	preactor->next		= preactor;
-	preactor->prev		= preactor;
-	preactor->options	= 0;
-	preactor->events	= events;
-	preactor->socket	= 0;
-	preactor->handler	= handler;
-	preactor->hint		= hint;
+	assert(pr != NULL);
+	pr->next	= pr;
+	pr->prev	= pr;
+	pr->ops		= 0;
+	pr->events	= events;
+	pr->socket	= 0;
+	pr->handler	= handler;
+	pr->hint	= hint;
 	return 0;
 }
 
@@ -60,10 +66,10 @@ int zmq_reactor_init(zmq_reactor_t* preactor, short events, zmq_reactor_handler_
 //
 // zmq_reactor_init_socket - initialize reactor with specific zmq socket
 //
-int zmq_reactor_init_socket(zmq_reactor_t* preactor, void* socket, short events, zmq_reactor_handler_t* handler, void* hint)
+int zmq_reactor_init_socket(zmq_reactor_t* pr, void* socket, short events, zmq_reactor_handler_t* handler, void* hint)
 {
-	zmq_reactor_init(preactor, events, handler, hint);
-	preactor->socket = socket;
+	zmq_reactor_init(pr, events, handler, hint);
+	pr->socket = socket;
 	return 0;
 }
 
@@ -71,35 +77,35 @@ int zmq_reactor_init_socket(zmq_reactor_t* preactor, void* socket, short events,
 //
 // zmq_reactor_insert - insert a new reactor
 //
-void zmq_reactor_insert(zmq_reactor_t* where, zmq_reactor_t* preactor)
+void zmq_reactor_insert(zmq_reactor_t* where, zmq_reactor_t* pr)
 {
-	assert(where != NULL && preactor != NULL);
-	assert(preactor->next == preactor && preactor->prev == preactor);
-	std::swap(preactor->next, where->prev->next);
-	std::swap(preactor->prev, where->prev);
+	assert(where != NULL && pr != NULL);
+	assert(pr->next == pr && pr->prev == pr);
+	std::swap(pr->next, where->prev->next);
+	std::swap(pr->prev, where->prev);
 }
 
 
 //
 // zmq_reactor_remove - unlinks reactor
 //
-void zmq_reactor_remove(zmq_reactor_t* preactor)
+void zmq_reactor_remove(zmq_reactor_t* pr)
 {
-	assert(preactor != NULL);
-	std::swap(preactor->next, preactor->prev->next);
-	std::swap(preactor->prev, preactor->prev->next->prev);
-	assert(preactor->next == preactor && preactor->prev == preactor);
+	assert(pr != NULL);
+	std::swap(pr->next, pr->prev->next);
+	std::swap(pr->prev, pr->prev->next->prev);
+	assert(pr->next == pr && pr->prev == pr);
 }
 
 
 //
 // zmq_reactor_close - unlinks reactor and closes socket
 //
-int zmq_reactor_close(zmq_reactor_t* preactor)
+int zmq_reactor_close(zmq_reactor_t* pr)
 {
-	assert(preactor != NULL);
-	zmq_reactor_remove(preactor);
-	int rc = zmq_close(preactor->socket);
+	assert(pr != NULL);
+	zmq_reactor_remove(pr);
+	int rc = zmq_close(pr->socket);
 	return rc;
 }
 
@@ -107,10 +113,10 @@ int zmq_reactor_close(zmq_reactor_t* preactor)
 //
 // zmq_reactor_connect - sets new socket, returns old socket
 //
-void* zmq_reactor_connect(zmq_reactor_t* preactor, void* socket)
+void* zmq_reactor_connect(zmq_reactor_t* pr, void* socket)
 {
-	assert(preactor != NULL);
-	std::swap(socket, preactor->socket);
+	assert(pr != NULL);
+	std::swap(socket, pr->socket);
 	return socket;
 }
 
@@ -118,23 +124,29 @@ void* zmq_reactor_connect(zmq_reactor_t* preactor, void* socket)
 //
 // zmq_reactor_socket - returns current socket
 //
-void* zmq_reactor_socket(zmq_reactor_t* preactor)
+void* zmq_reactor_socket(zmq_reactor_t* pr)
 {
-	assert(preactor != NULL);
-	return preactor->socket;
+	assert(pr != NULL);
+	return pr->socket;
 }
 
 
 //
 // zmq_reactor_events
 //
-short zmq_reactor_events(zmq_reactor_t* preactor, short events)
+short zmq_reactor_events(zmq_reactor_t* pr, short events)
 {
-	assert(preactor != NULL);
-	std::swap(events, preactor->events);
+	assert(pr != NULL);
+	std::swap(events, pr->events);
 	return events;
 }
 
+short zmq_reactor_ops(zmq_reactor_t* pr, short ops)
+{
+	assert(pr != NULL);
+	std::swap(ops, pr->ops);
+	return ops;
+}
 
 //
 // build_pollitems (static)
@@ -172,150 +184,92 @@ static void refresh_pollitems(zmq_pollitem_t* begin, zmq_pollitem_t* end, zmq_re
 		begin->events = (*preactor)->events;
 }
 
-
-//
-// callback_pollitems_t
-//
-typedef int callback_pollitems_t(zmq_pollitem_t* begin, zmq_pollitem_t* end, zmq_reactor_t** preactor);
-
-
-//
-// callback_pollitems (static)
-//
-static int callback_pollitems(zmq_pollitem_t* begin, zmq_pollitem_t* end, zmq_reactor_t** preactor)
-{
-	int rc = 0;
-	for (; begin != end; ++begin, ++preactor) {
-		if (begin->revents) {
-			rc = ((*preactor)->handler)(begin->socket, begin->revents, *preactor, (*preactor)->hint);
-			// force return if non-zero
-			if (rc)
-				break;
-		}
-	}
-	return rc;
-}
-
-//
-// callback_repollitems
-//
-static int callback_repollitems(zmq_pollitem_t* begin, zmq_pollitem_t* end, zmq_reactor_t** preactor)
-{
-	int rc = 0;
-	if (begin != end) {
-		for (;;) {
-			if (begin->revents) {
-				rc = ((*preactor)->handler)(begin->socket, begin->revents, *preactor, (*preactor)->hint);
-				// force return if non-zero
-				if (rc)
-					break;
-				
-				// bump and break if at end
-				++begin;
-				++preactor;
-				
-				if (begin == end)
-					break;
-				
-				// re-poll all elements from here to end (immediate return)
-				rc = zmq_poll(begin, end - begin, 0);			
-				if (rc == -1 || rc == 0)
-					break;
-			}
-		}
-	}
-	return rc;
-}
-
-//
-// MOVED HERE TEMPORARILY TO COMPILE
-// zmq_reactor_policy_t - user supplied function to select reactor ordering
-//
-// policy can return one of the following:
-//	- same reactor	= poll_list remains the same
-//	- new reactor	= poll_list is rebuilt, and starts with new reactor
-//	- NULL			= zmq_reactor_poll() gracefully returns with 0 (= no error)
-//
-typedef zmq_reactor_t* zmq_reactor_policy_t(zmq_reactor_t*, void* hint);
-
-
 //
 // zmq_reactor_repoll_policy
 //
-int zmq_reactor_framework(zmq_reactor_t* start, long timeout, callback_pollitems_t* callback, zmq_reactor_policy_t* policy, void* hint)
+int zmq_reactor_poll(zmq_reactor_t* begin, const long utimeout)
 {
 	// TODO: is std::vector efficient here?
 	zmq_reactor_t* reactors[MAX_POLL];
 	zmq_pollitem_t items[MAX_POLL];
 	
-	assert(start != NULL);
+	assert(begin != NULL);
 	
 	// initialize pollitems
-	zmq_pollitem_t* end_item = build_pollitems(start, items, reactors);
+	zmq_pollitem_t* end = build_pollitems(begin, items, reactors);
 	
+	// starting point
+	zmq_pollitem_t* start = items;
+	long timeout = utimeout; 
+
 	for (;;) {
+		// update polling vectors
+		refresh_pollitems(start, end, reactors);
+
+		IF_DEBUG(cout << "zmq_poll offset=" << (start - items) << " timeout=" << timeout << endl);
+		// poll
 		int rc = 0;
+		rc = zmq_poll(start, end - start, timeout);
+
+		IF_DEBUG(cout << "zmq_poll rc=" << rc << endl);
+
+		// reset start
+		zmq_pollitem_t* pitem = items;
+		swap(start, pitem);
+		timeout = utimeout;
 		
-		rc = zmq_poll(items, end_item - items, timeout);
+		// timeout was set to 0 by immediate poll
+		if (rc == 0 && utimeout)
+			continue;
+		
 		// rc == 0 if timeout reached, or if no items were enabled for polling
 		if (rc == -1 || rc == 0)
 			return rc;
 		
 		assert(rc > 0);
 		
-		// callback pollitems
-		rc = (*callback)(items, end_item, reactors);
-		if (rc)
-			return rc;
 		
-		// handle NULL policy as "once only"
-		if (policy == NULL)
-			return 0;
-		
-		// else: execute policy
-		zmq_reactor_t* next = (*policy)(*reactors, hint);
-		
-		// return, refresh, rebuild
-		if (next == NULL)
-			return 0;
-		else if (next == *reactors)
-			refresh_pollitems(items, end_item, reactors);
-		else 
-			end_item = build_pollitems(start, items, reactors);
+		for (; pitem != end; ++pitem) {
+			zmq_reactor_t* pr = reactors[pitem - items];
+			if (pitem->revents || pr->ops & ZMQ_REACTOR_OPS_ALWAYS) {
+				IF_DEBUG(cout << "calling handler " << (pitem - items) << endl);
+				rc = (pr->handler)(pitem->socket, pitem->revents, pr, pr->hint);
+				// force return if non-zero
+				if (rc)
+					return rc;
+				
+				// get cmd
+				if (pr->ops & ZMQ_REACTOR_OPS_INSTR) {
+					short instr = pr->ops & ZMQ_REACTOR_OPS_INSTR;
+					short offset = pr->ops & ZMQ_REACTOR_OPS_OFFSET;
+				
+					if (instr == ZMQ_REACTOR_OPS_EXIT) {
+						return offset;
+					}
+					else if (instr == ZMQ_REACTOR_OPS_POLA) {
+						if (offset >= end - items)
+							return -1;
+						start = items + offset;
+						break;
+					}
+					else if (instr == ZMQ_REACTOR_OPS_POLFI) {
+						if (offset >= end - pitem)
+							return -1;
+						start = pitem + offset;
+						timeout = 0;
+						break;
+					}
+					else if (instr == ZMQ_REACTOR_OPS_BRF) {
+						if (offset >= end - pitem)
+							return -1;
+						// move pitem forward
+						pitem += offset;
+					}
+				}
+			}
+		}
 	}
 }
 
 
 //
-// zmq_reactor_poll_policy - poll using default policy
-//
-int zmq_reactor_poll_policy(zmq_reactor_t* preactor, long timeout, zmq_reactor_policy_t* policy, void* hint)
-{
-	return zmq_reactor_framework(preactor, timeout, callback_pollitems, policy, 0);
-}
-
-
-//
-// default_policy (static)
-//
-static zmq_reactor_t* default_policy(zmq_reactor_t* reactor, void* hint)
-{
-	return reactor;
-}
-
-//
-// zmq_reactor_poll_policy - poll using default policy
-//
-int zmq_reactor_repoll(zmq_reactor_t* preactor, long timeout)
-{
-	return zmq_reactor_framework(preactor, timeout, callback_repollitems, default_policy, 0);
-}
-
-
-//
-// zmq_reactor_poll - poll using default policy
-//
-int zmq_reactor_poll(zmq_reactor_t* preactor, long timeout)
-{
-	return zmq_reactor_framework(preactor, timeout, callback_pollitems, default_policy, 0);
-}

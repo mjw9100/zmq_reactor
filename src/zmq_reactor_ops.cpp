@@ -28,9 +28,59 @@
  * 
  */
 
-#ifndef	__ZMQ_REACTOR_OPTIONS_H_INCLUDED__
-#define	__ZMQ_REACTOR_OPTIONS_H_INCLUDED__
 
-// This module will contain helper functions to set up various reactor options
+#include "zmq_reactor_ops.h"
 
-#endif	__ZMQ_REACTOR_OPTIONS_H_INCLUDED__
+#include <cassert>
+
+//
+// zmq_reactor_ops_normal - supplied for completeness
+//
+void zmq_reactor_ops_normal(zmq_reactor_t* start)
+{
+	assert(start != NULL);
+	
+	// always process at least one
+	for (zmq_reactor_t* pcur = start; ; pcur = pcur->next) {
+		pcur->ops = ZMQ_REACTOR_OPS_NOP;
+		// break
+		if (pcur->next == start)
+			break;
+	}
+}
+
+//
+// zmq_reactor_ops_priority - priority polling
+//
+void zmq_reactor_ops_priority(zmq_reactor_t* start)
+{
+	assert(start != NULL);
+	
+	// always process at least one
+	for (zmq_reactor_t* pcur = start; ; pcur = pcur->next) {
+		pcur->ops = ZMQ_REACTOR_OPS_POLA;
+		// break
+		if (pcur->next == start)
+			break;
+	}
+}
+
+//
+// zmq_reactor_ops_priority - priority polling
+//
+void zmq_reactor_ops_trailing(zmq_reactor_t* start)
+{
+	assert(start != NULL);
+	
+	// always process at least one
+	for (zmq_reactor_t* pcur = start; ; pcur = pcur->next) {
+		if (pcur->next != start)
+			pcur->ops = ZMQ_REACTOR_OPS_POLFI + 1;
+		else {
+			pcur->ops = ZMQ_REACTOR_OPS_NOP;
+			break;
+		}
+	}
+}
+
+

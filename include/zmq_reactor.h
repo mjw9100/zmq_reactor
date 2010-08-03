@@ -53,7 +53,7 @@ typedef int zmq_reactor_handler_t(void* socket, short revents, struct zmq_reacto
 struct zmq_reactor_t {
 	zmq_reactor_t*			next;
 	zmq_reactor_t*			prev;
-	short					options;
+	short					ops;
 	short					events;
 	void*					socket;
 	zmq_reactor_handler_t*	handler;
@@ -61,29 +61,23 @@ struct zmq_reactor_t {
 };
 
 //
-// reactor callback options
-//
-// NB microcode-like reactor options -- helper functions TBD in zmq_reactor_options.h
-//
-// ZMQ_REACTOR_OPT_ALWAYS - always callback even if no event occurred
-//
-// ZMQ_REACTOR_OPT_EXIT - always callback even if no event occurred
-//
-// ZMQ_REACTOR_OPT_RESTART - after calling, restart poll cycle
-// branch offset used to select next starting point (offset from 0)
-//
-// ZMQ_REACTOR_OPT_RELATIVE - offset on restart is relative to this reactor
-// NB this may not be final
-//
-// ZMQ_REACTOR_OPT_OFFSET_MASK - offset [0..15] to next reactor
-// executes relative branch to next reactor if non-zero
+// reactor operators
 //
 
-#define	ZMQ_REACTOR_OPT_ALWAYS		0x0080
-#define	ZMQ_REACTOR_OPT_EXIT		0x0040
-#define	ZMQ_REACTOR_OPT_RESTART		0x0020
-#define	ZMQ_REACTOR_OPT_RELATIVE	0x0010
-#define	ZMQ_REACTOR_OPT_OFFSET_MASK	0x000f
+// always call handler
+#define	ZMQ_REACTOR_OPS_ALWAYS	0x0080
+
+// instruction mask
+#define	ZMQ_REACTOR_OPS_INSTR	0x0070
+
+#define	ZMQ_REACTOR_OPS_EXIT	0x0070	// zmq_reactor_poll returns offset
+#define	ZMQ_REACTOR_OPS_POLA	0x0030	// poll next at absolute position
+#define	ZMQ_REACTOR_OPS_POLFI	0x0020	// poll immediate at forward offset
+#define	ZMQ_REACTOR_OPS_BRF		0x0010	// branch forward without polling
+#define	ZMQ_REACTOR_OPS_NOP		0x0000	// no operation (just continue)
+
+// offset mask
+#define	ZMQ_REACTOR_OPS_OFFSET	0x000f
 
 //
 // zmq_reactor_init - initialize reactor
@@ -134,8 +128,7 @@ short zmq_reactor_events(zmq_reactor_t*, short events);
 //
 // returns: previous options
 //
-short zmq_reactor_options(zmq_reactor_t*, short options);
-
+short zmq_reactor_ops(zmq_reactor_t*, short ops);
 
 // 
 // zmq_reactor_poll - poll reactors using the default polling policy (zmq_reactor_policy_static)
