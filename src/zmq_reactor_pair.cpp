@@ -46,7 +46,7 @@ void* zmq_reactor_pair(void* context, zmq_reactor_t* reactor)
 	name.append(zmq_reactor_uuid());
 	
 	// creating socket
-	void* bindsock = zmq_socket(context, ZMQ_REQ);
+	void* bindsock = zmq_socket(context, ZMQ_PAIR);
 	void* connsock = zmq_socket(context, ZMQ_PAIR);
 	
 	// errors?
