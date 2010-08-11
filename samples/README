@@ -1,24 +1,16 @@
 What's Here:
 ============
 
-Client-Server
--------------
-Just a basic client server used to demonstrate other modules
+queue
+-----
 
-Files:
-	main.cpp
-	client.*
-	server.*
+A basic client server sample with an implementation of ZMQ_QUEUE using zmq_reactor.
 
+pair
+----
 
-Queue Device
-------------
-Queue device is an implementation of ZMQ_QUEUE using zmq_reactor.
+A small program that demonstrates zmq_reactor_pair.
 
-Files:
-	queue_device.cpp
-	queue_device.hpp
-
-
+=============
 
 NB There are no makefiles (yet) because I'm building this on a Mac, so you really don't want my xcodeproj file :-)
