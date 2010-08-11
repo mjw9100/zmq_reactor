@@ -36,50 +36,39 @@
 //
 // zmq_reactor_ops_normal - supplied for completeness
 //
-void zmq_reactor_ops_normal(zmq_reactor_t* start)
+void zmq_reactor_ops_normal(zmq_reactor_t* begin, int nitems)
 {
-	assert(start != NULL);
+	assert(begin != NULL);
 	
 	// always process at least one
-	for (zmq_reactor_t* pcur = start; ; pcur = pcur->next) {
-		pcur->ops = ZMQ_REACTOR_OPS_NOP;
-		// break
-		if (pcur->next == start)
-			break;
-	}
+	for (zmq_reactor_t* end = begin + nitems; begin != end; ++begin)
+		begin->ops = ZMQ_REACTOR_OPS_NOP;
 }
 
 //
 // zmq_reactor_ops_priority - priority polling
 //
-void zmq_reactor_ops_priority(zmq_reactor_t* start)
+void zmq_reactor_ops_priority(zmq_reactor_t* begin, int nitems)
 {
-	assert(start != NULL);
+	assert(begin != NULL);
 	
-	// always process at least one
-	for (zmq_reactor_t* pcur = start; ; pcur = pcur->next) {
-		pcur->ops = ZMQ_REACTOR_OPS_POLA;
-		// break
-		if (pcur->next == start)
-			break;
-	}
+	// process, then return to beginning of loop
+	for (zmq_reactor_t* end = begin + nitems; begin != end; ++begin)
+		begin->ops = ZMQ_REACTOR_OPS_POLA;
 }
 
 //
 // zmq_reactor_ops_priority - priority polling
 //
-void zmq_reactor_ops_trailing(zmq_reactor_t* start)
+void zmq_reactor_ops_trailing(zmq_reactor_t* begin, int nitems)
 {
-	assert(start != NULL);
+	assert(begin != NULL);
 	
 	// always process at least one
-	for (zmq_reactor_t* pcur = start; ; pcur = pcur->next) {
-		if (pcur->next != start)
-			pcur->ops = ZMQ_REACTOR_OPS_POLFI + 1;
-		else {
-			pcur->ops = ZMQ_REACTOR_OPS_NOP;
-			break;
-		}
+	for (zmq_reactor_t* end = begin + nitems; begin != end; ) {
+		begin->ops = ZMQ_REACTOR_OPS_POLFI + 1;
+		if (++begin == end)
+			begin->ops = ZMQ_REACTOR_OPS_NOP;
 	}
 }
 

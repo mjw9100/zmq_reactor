@@ -52,8 +52,6 @@ enum { MAX_POLL = 50 };
 int zmq_reactor_init(zmq_reactor_t* pr, short events, zmq_reactor_handler_t* handler, void* hint)
 {
 	assert(pr != NULL);
-	pr->next	= pr;
-	pr->prev	= pr;
 	pr->ops		= 0;
 	pr->events	= events;
 	pr->socket	= 0;
@@ -75,36 +73,11 @@ int zmq_reactor_init_socket(zmq_reactor_t* pr, void* socket, short events, zmq_r
 
 
 //
-// zmq_reactor_insert - insert a new reactor
-//
-void zmq_reactor_insert(zmq_reactor_t* where, zmq_reactor_t* pr)
-{
-	assert(where != NULL && pr != NULL);
-	assert(pr->next == pr && pr->prev == pr);
-	std::swap(pr->next, where->prev->next);
-	std::swap(pr->prev, where->prev);
-}
-
-
-//
-// zmq_reactor_remove - unlinks reactor
-//
-void zmq_reactor_remove(zmq_reactor_t* pr)
-{
-	assert(pr != NULL);
-	std::swap(pr->next, pr->prev->next);
-	std::swap(pr->prev, pr->prev->next->prev);
-	assert(pr->next == pr && pr->prev == pr);
-}
-
-
-//
 // zmq_reactor_close - unlinks reactor and closes socket
 //
 int zmq_reactor_close(zmq_reactor_t* pr)
 {
 	assert(pr != NULL);
-	zmq_reactor_remove(pr);
 	int rc = zmq_close(pr->socket);
 	return rc;
 }
@@ -141,6 +114,10 @@ short zmq_reactor_events(zmq_reactor_t* pr, short events)
 	return events;
 }
 
+
+//
+// zmq_reactor_ops
+//
 short zmq_reactor_ops(zmq_reactor_t* pr, short ops)
 {
 	assert(pr != NULL);
@@ -148,74 +125,68 @@ short zmq_reactor_ops(zmq_reactor_t* pr, short ops)
 	return ops;
 }
 
+
 //
-// build_pollitems (static)
+// STATIC build_pollitems
 //
-static zmq_pollitem_t* build_pollitems(zmq_reactor_t* preactor, zmq_pollitem_t* pitems, zmq_reactor_t** preactors)
+static void build_pollitems(int nitems, zmq_pollitem_t* items, zmq_reactor_t* reactors)
 {
-	for (zmq_reactor_t* curp = preactor;;) {
-		// save reactor address for this index
-		*preactors		= curp;
+	for (zmq_pollitem_t* end = items + nitems; items != end; ++items, ++reactors) {
 		// setup poll items
-		pitems->socket	= curp->socket;
-		pitems->fd		= 0;
-		pitems->events	= curp->events;
-		pitems->revents	= 0;
-		// bump list
-		++preactors;
-		++pitems;
-		
-		// go to next item
-		curp = curp->next;
-		if (curp == preactor)
-			break;
+		items->socket	= reactors->socket;
+		items->fd		= 0;
+		items->events	= reactors->events;
+		items->revents	= 0;
 	}
-	
-	return pitems;
 }
 
 
 //
-// refresh_pollitems (static)
+// STATIC refresh_pollitems
 //
-static void refresh_pollitems(zmq_pollitem_t* begin, zmq_pollitem_t* end, zmq_reactor_t** preactor)
+static void refresh_pollitems(int nitems, zmq_pollitem_t* items, zmq_reactor_t* reactors)
 {
-	for (; begin != end; ++begin, ++preactor)
-		begin->events = (*preactor)->events;
+	for (zmq_pollitem_t* end = items + nitems; items != end; ++items, ++reactors)
+		items->events = reactors->events;
 }
 
 //
 // zmq_reactor_repoll_policy
 //
-int zmq_reactor_poll(zmq_reactor_t* begin, const long utimeout)
+int zmq_reactor_poll(zmq_reactor_t* reactors, int nitems, const long utimeout)
 {
 	// TODO: is std::vector efficient here?
-	zmq_reactor_t* reactors[MAX_POLL];
 	zmq_pollitem_t items[MAX_POLL];
+
+	if (nitems < 1 || nitems > MAX_POLL) {
+		errno = ERANGE;
+		return -1;
+	}
 	
-	assert(begin != NULL);
+	assert(reactors != NULL);
 	
 	// initialize pollitems
-	zmq_pollitem_t* end = build_pollitems(begin, items, reactors);
+	build_pollitems(nitems, items, reactors);
 	
 	// starting point
-	zmq_pollitem_t* start = items;
+	int offset = 0;
 	long timeout = utimeout; 
 
 	for (;;) {
-		// update polling vectors
-		refresh_pollitems(start, end, reactors);
+		IF_DEBUG(cout << "zmq_poll offset=" << offset << " timeout=" << timeout << endl);
 
-		IF_DEBUG(cout << "zmq_poll offset=" << (start - items) << " timeout=" << timeout << endl);
+		// update polling vectors
+		refresh_pollitems(nitems - offset, items + offset, reactors + offset);
+
 		// poll
 		int rc = 0;
-		rc = zmq_poll(start, end - start, timeout);
+		rc = zmq_poll(items + offset, nitems - offset, timeout);
 
 		IF_DEBUG(cout << "zmq_poll rc=" << rc << endl);
 
 		// reset start
-		zmq_pollitem_t* pitem = items;
-		swap(start, pitem);
+		int curoff = 0;
+		swap(offset, curoff);
 		timeout = utimeout;
 		
 		// timeout was set to 0 by immediate poll
@@ -228,12 +199,12 @@ int zmq_reactor_poll(zmq_reactor_t* begin, const long utimeout)
 		
 		assert(rc > 0);
 		
-		
-		for (; pitem != end; ++pitem) {
-			zmq_reactor_t* pr = reactors[pitem - items];
-			if (pitem->revents || pr->ops & ZMQ_REACTOR_OPS_ALWAYS) {
-				IF_DEBUG(cout << "calling handler " << (pitem - items) << endl);
-				rc = (pr->handler)(pitem->socket, pitem->revents, pr, pr->hint);
+		zmq_pollitem_t* pi = items + curoff;
+		zmq_reactor_t* pr = reactors + curoff;
+		for (zmq_pollitem_t* end = items + nitems; pi != end; ++pi, ++pr) {
+			if (pi->revents || pr->ops & ZMQ_REACTOR_OPS_ALWAYS) {
+				IF_DEBUG(cout << "calling handler " << (pi - items) << endl);
+				rc = (pr->handler)(pi->socket, pi->revents, pr, pr->hint);
 				// force return if non-zero
 				if (rc)
 					return rc;
@@ -241,29 +212,30 @@ int zmq_reactor_poll(zmq_reactor_t* begin, const long utimeout)
 				// get cmd
 				if (pr->ops & ZMQ_REACTOR_OPS_INSTR) {
 					short instr = pr->ops & ZMQ_REACTOR_OPS_INSTR;
-					short offset = pr->ops & ZMQ_REACTOR_OPS_OFFSET;
+					short opoff = pr->ops & ZMQ_REACTOR_OPS_OFFSET;
 				
 					if (instr == ZMQ_REACTOR_OPS_EXIT) {
-						return offset;
+						return opoff;
 					}
 					else if (instr == ZMQ_REACTOR_OPS_POLA) {
-						if (offset >= end - items)
+						if (opoff >= nitems)
 							return -1;
-						start = items + offset;
+						offset = opoff;
 						break;
 					}
 					else if (instr == ZMQ_REACTOR_OPS_POLFI) {
-						if (offset >= end - pitem)
+						if (opoff >= end - pi)
 							return -1;
-						start = pitem + offset;
+						offset = (pi - items) + opoff;
 						timeout = 0;
 						break;
 					}
 					else if (instr == ZMQ_REACTOR_OPS_BRF) {
-						if (offset >= end - pitem)
+						if (opoff >= end - pi)
 							return -1;
 						// move pitem forward
-						pitem += offset;
+						pi += opoff;
+						pr += opoff;
 					}
 				}
 			}

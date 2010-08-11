@@ -51,8 +51,6 @@ typedef int zmq_reactor_handler_t(void* socket, short revents, struct zmq_reacto
 // zmq_reactor_t - contains handler, socket data
 //
 struct zmq_reactor_t {
-	zmq_reactor_t*			next;
-	zmq_reactor_t*			prev;
 	short					ops;
 	short					events;
 	void*					socket;
@@ -89,16 +87,6 @@ int zmq_reactor_init(zmq_reactor_t*, short events, zmq_reactor_handler_t*, void*
 //
 int zmq_reactor_init_socket(zmq_reactor_t* reactor, void* socket, short events, zmq_reactor_handler_t* handler, void* hint);
 
-// 
-// zmq_reactor_insert - insert a reactor into a poll list
-//
-void zmq_reactor_insert(zmq_reactor_t* where, zmq_reactor_t*);
-
-//
-// zmq_reactor_remove - removes (unlinks) a reactor from a poll list
-//
-void zmq_reactor_remove(zmq_reactor_t*);
-
 //
 // zmq_reactor_close - removes reactor from a poll list and closes associated zmq socket (if any)
 //
@@ -131,8 +119,8 @@ short zmq_reactor_events(zmq_reactor_t*, short events);
 short zmq_reactor_ops(zmq_reactor_t*, short ops);
 
 // 
-// zmq_reactor_poll - poll reactors using the default polling policy (zmq_reactor_policy_static)
+// zmq_reactor_poll - poll reactors
 //
-int zmq_reactor_poll(zmq_reactor_t*, long timeout); 
+int zmq_reactor_poll(zmq_reactor_t*, int nitems, long timeout); 
 
 #endif//__ZMQ_REACTOR_H_INCLUDED__

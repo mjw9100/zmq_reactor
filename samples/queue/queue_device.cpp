@@ -63,21 +63,18 @@ static int queue_handler(void* socket, short events, zmq_reactor_t* reactor, voi
 	return 0;
 }
 
-int queue_device(void* socket1, void* socket2)
+int queue_device(void* socket0, void* socket1)
 {
-	zmq_reactor_t reactor1, reactor2;
+	zmq_reactor_t reactors[2];
 	
-	assert(zmq_reactor_init_socket(&reactor1, socket1, ZMQ_POLLIN, queue_handler, socket2) == 0);
-	assert(zmq_reactor_init_socket(&reactor2, socket2, ZMQ_POLLIN, queue_handler, socket1) == 0);
+	assert(zmq_reactor_init_socket(&reactors[0], socket0, ZMQ_POLLIN, queue_handler, socket1) == 0);
+	assert(zmq_reactor_init_socket(&reactors[1], socket1, ZMQ_POLLIN, queue_handler, socket0) == 0);
 	
-	// assemble queue
-	zmq_reactor_insert(&reactor1, &reactor2);
-
 	// unnecessary, but demonstrative
-	zmq_reactor_ops_normal(&reactor1);
+	zmq_reactor_ops_normal(reactors, 2);
 	
 	// poll
-	int rc = zmq_reactor_poll(&reactor1, -1);
+	int rc = zmq_reactor_poll(reactors, 2, -1);
 	return rc;
 }
 

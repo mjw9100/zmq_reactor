@@ -38,20 +38,20 @@
 //
 // Pattern: standard in-order polling
 // 
-void zmq_reactor_ops_normal(zmq_reactor_t* start);
+void zmq_reactor_ops_normal(zmq_reactor_t*, int nitems);
 
 //
 // zmq_reactor_ops_priority - priority polling
 //
 // Pattern: priority polling - initiates a new poll from the start after every reactor call
 // 
-void zmq_reactor_ops_priority(zmq_reactor_t* start);
+void zmq_reactor_ops_priority(zmq_reactor_t*, int nitems);
 
 //
 // zmq_reactor_ops_trailing - poll trailing sockets
 //
 // Pattern: trailing poll - sockets following are polled again
 // 
-void zmq_reactor_ops_trailing(zmq_reactor_t* start);
+void zmq_reactor_ops_trailing(zmq_reactor_t*, int nitems);
 
 #endif	__ZMQ_REACTOR_OPS_H_INCLUDED__

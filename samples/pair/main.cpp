@@ -176,27 +176,22 @@ int main(int argc, char** argv)
 	void* context = zmq_init(1);
 	assert(context != NULL);
 
-	// ECHO REACTOR
-	zmq_reactor_t echo;
+	zmq_reactor_t reactors[2];
+	zmq_reactor_t* echo = &reactors[0];
+	zmq_reactor_t* timer = &reactors[1];
 
-	int rc = zmq_reactor_init(&echo, ZMQ_POLLIN, echo_handler, 0);
+	int rc = zmq_reactor_init(echo, ZMQ_POLLIN, echo_handler, 0);
 	assert(rc == 0);
 	
 	// create echo pair
-	void* cecho = zmq_reactor_pair(context, &echo);
-	
-	// TIMER REACTOR
-	zmq_reactor_t timer;
+	void* cecho = zmq_reactor_pair(context, echo);
 	
 	// wire echo pair to timer reactor
-	rc = zmq_reactor_init(&timer, ZMQ_POLLIN, timer_handler, zmq_reactor_socket(&echo));
+	rc = zmq_reactor_init(timer, ZMQ_POLLIN, timer_handler, zmq_reactor_socket(echo));
 	assert(rc == 0);
 
 	// create timer pair
-	void* ctimer = zmq_reactor_pair(context, &timer);
-	
-	// assemble queue
-	zmq_reactor_insert(&timer, &echo);
+	void* ctimer = zmq_reactor_pair(context, timer);
 	
 	// start threads
 	pthread_t worker;
@@ -207,6 +202,6 @@ int main(int argc, char** argv)
 	assert (rc == 0);
 	
 	// poll
-	rc = zmq_reactor_poll(&timer, -1);
+	rc = zmq_reactor_poll(reactors, 2, -1);
 	return rc;
 }
