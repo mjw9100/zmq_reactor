@@ -44,8 +44,7 @@ using namespace std;
 typedef struct connector {
 	void* context;
 	unsigned check;
-	unsigned char len;
-	char name[];
+	char name[1];
 };
 
 // creates unique inproc ZMQ_PAIR, sets socket of reactor, and returns "connector" side of pair
@@ -54,14 +53,13 @@ void* zmq_reactor_pair(void* context, zmq_reactor_t* reactor)
 	// create inproc name
 	string name = "inproc://uuid_";
 	name.append(zmq_reactor_uuid());
-	connector* pconn = (connector*)malloc(sizeof(connector) + name.size() + 1);
+	connector* pconn = (connector*)malloc(sizeof(connector) + name.size());
 	if (pconn == NULL)
 		return NULL;
 	
 	// setup connector
 	pconn->check = VALID_CONNECTOR;
 	pconn->context = context;
-	pconn->len = name.size();
 	strcpy(pconn->name, name.c_str());
 	
 	// creating socket
@@ -96,7 +94,7 @@ void* zmq_reactor_pair_connect(void* pvoid)
 	int rc = zmq_connect(zocket, pconn->name);
 	assert(rc == 0);
 
-	pconn->check = 0xDEAD;
+	pconn->check = 0xDEADBEEF;
 	
 	free(pconn);
 	
