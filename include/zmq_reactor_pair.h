@@ -32,7 +32,29 @@
 #define	__ZMQ_REACTOR_PAIR_H_INCLUDED__
 #include "zmq_reactor.h"
 
-// creates unique inproc ZMQ_PAIR, sets socket of reactor, and returns "output" side of pair
+//
+// zmq_reactor_pair - creates unique inproc ZMQ_PAIR
+//
+// zmq_reactor_pair sets the socket of the supplied reactor, and returns a 
+// "connect block" that can be used by zmq_reactor_pair_connect in a different
+// thread to connect to the pair
+//
+// returns a "connector" usable by zmq_reactor_pair_connect, or NULL on failure
+//
 void* zmq_reactor_pair(void* context, zmq_reactor_t*);
+
+//
+// zmq_reactor_pair_connect - connect to the other side of the pair
+//
+// zmq_reactor_pair_connect converts a connector returned by zmq_reactor_pair to
+// a socket.
+//
+// returns a socket pointer, or NULL on failure
+//
+// NB if called on the same connector twice, will fault or assert (block is freed
+// after first call
+//
+void* zmq_reactor_pair_connect(void* connector);
+
 
 #endif//__ZMQ_REACTOR_PAIR_H_INCLUDED__
