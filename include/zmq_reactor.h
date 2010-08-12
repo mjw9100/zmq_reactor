@@ -51,11 +51,11 @@ typedef int zmq_reactor_handler_t(void* socket, short revents, struct zmq_reacto
 // zmq_reactor_t - contains handler, socket data
 //
 struct zmq_reactor_t {
-	short					ops;
-	short					events;
-	void*					socket;
 	zmq_reactor_handler_t*	handler;
 	void*					hint;
+	void*					socket;
+	short					events;
+	short					ops;
 };
 
 //
