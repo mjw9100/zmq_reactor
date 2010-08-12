@@ -11,6 +11,12 @@ pair
 
 A small program that demonstrates zmq_reactor_pair.
 
+
+req_server
+----------
+
+Client-server app demonstrating server threads using a ZMQ_REQ socket
+
 =============
 
 NB There are no makefiles (yet) because I'm building this on a Mac, so you really don't want my xcodeproj file :-)
