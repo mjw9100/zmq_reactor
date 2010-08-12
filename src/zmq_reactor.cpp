@@ -78,7 +78,9 @@ int zmq_reactor_init_socket(zmq_reactor_t* pr, void* socket, short events, zmq_r
 int zmq_reactor_close(zmq_reactor_t* pr)
 {
 	assert(pr != NULL);
-	int rc = zmq_close(pr->socket);
+	int rc = 0;
+	if (pr->socket)
+		rc = zmq_close(pr->socket);
 	return rc;
 }
 
