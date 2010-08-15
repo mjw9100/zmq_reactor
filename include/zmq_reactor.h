@@ -62,6 +62,10 @@ struct zmq_reactor_t {
 // reactor operators
 //
 
+// FUTURE: change ALWAYS to use INBITS and OUTBITS (bitsets) to
+// allow matching other reactors'trigger bitsets. This allows
+// associate triggers. Add a POLL_AGAIN flag to obviate POLLFI.
+
 // always call handler
 #define	ZMQ_REACTOR_OPS_ALWAYS	0x0080
 
