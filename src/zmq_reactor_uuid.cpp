@@ -31,8 +31,7 @@
 #include "zmq_reactor_uuid.h"
 
 // one way to build a uuid -- 
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
+#include <uuid/uuid.h>
 
 #include <string>
 using namespace std;
@@ -40,12 +39,12 @@ using namespace std;
 // TODO: is it better to clone the identity code? must verify that nulls will not appear
 string zmq_reactor_uuid()
 {
-	boost::uuids::random_generator gen;
-	boost::uuids::uuid u = gen();
-	const size_t uuid_len = sizeof u.data / sizeof u.data[0];
+	uuid_t u;
+	uuid_generate(u);
+	const size_t uuid_len = sizeof u / sizeof u[0];
 	string s;
-	uint8_t base = 'A';
-	for (uint8_t* pc = u.data; pc != u.data + uuid_len; ++pc) {
+	unsigned char base = 'A';
+	for (unsigned char* pc = u; pc != &u[uuid_len]; ++pc) {
 		if (*pc)
 			s.push_back(*pc);
 		else {
