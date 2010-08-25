@@ -32,8 +32,9 @@
 #include "zmq_reactor_pair.h"
 #include "zmq_reactor_uuid.h"
 
-#include <string>
+#include <cassert>
 #include <iostream>
+#include <string>
 using namespace std;
 
 // todo move to zmq_reactor_pair

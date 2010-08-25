@@ -38,7 +38,7 @@
 //
 void zmq_reactor_ops_normal(zmq_reactor_t* begin, int nitems)
 {
-	assert(begin != NULL);
+	assert(begin != 0);
 	
 	// always process at least one
 	for (zmq_reactor_t* end = begin + nitems; begin != end; ++begin)
@@ -50,7 +50,7 @@ void zmq_reactor_ops_normal(zmq_reactor_t* begin, int nitems)
 //
 void zmq_reactor_ops_priority(zmq_reactor_t* begin, int nitems)
 {
-	assert(begin != NULL);
+	assert(begin != 0);
 	
 	// process, then return to beginning of loop
 	for (zmq_reactor_t* end = begin + nitems; begin != end; ++begin)
@@ -62,7 +62,7 @@ void zmq_reactor_ops_priority(zmq_reactor_t* begin, int nitems)
 //
 void zmq_reactor_ops_trailing(zmq_reactor_t* begin, int nitems)
 {
-	assert(begin != NULL);
+	assert(begin != 0);
 	
 	// always process at least one
 	for (zmq_reactor_t* end = begin + nitems; begin != end; ) {

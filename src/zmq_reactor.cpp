@@ -32,6 +32,7 @@
 
 #include "zmq.h"
 
+#include <cassert>
 #include <iostream>
 using namespace std;
 
