@@ -54,4 +54,4 @@ void zmq_reactor_ops_priority(zmq_reactor_t*, int nitems);
 // 
 void zmq_reactor_ops_trailing(zmq_reactor_t*, int nitems);
 
-#endif	__ZMQ_REACTOR_OPS_H_INCLUDED__
+#endif//__ZMQ_REACTOR_OPS_H_INCLUDED__

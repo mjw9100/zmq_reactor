@@ -78,7 +78,7 @@ struct zmq_reactor_t {
 #define	ZMQ_REACTOR_OPS_BRF		0x0010	// branch forward without polling
 #define	ZMQ_REACTOR_OPS_NOP		0x0000	// no operation (just continue)
 
-// offset mask - used when OPS is EXIT, POLA, POLFI, BRF
+// offset mask
 #define	ZMQ_REACTOR_OPS_OFFSET	0x000f
 
 //
